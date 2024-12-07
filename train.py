@@ -4,6 +4,7 @@
 @Email : itjunhao@qq.com
 @File  : train.py        
 """
+import copy
 import time
 
 import torch
@@ -15,6 +16,10 @@ import torch.utils.data as data
 import model
 import os
 from PIL import Image
+import torchvision.utils as vutils
+import matplotlib.pyplot as plt
+import torch.nn.functional as F
+
 class BatchSplitDataset(Dataset):
     def __init__(self, root_dir, batch_size, transform=None):
         self.root_dir = root_dir
@@ -67,16 +72,28 @@ def train_val_data_process():
     # 划分训练集和验证集
     train_data, val_data = data.random_split(dataset,
                                              lengths=[round(0.8*len(dataset)), round(0.2*len(dataset))])
-    train_loader = data.DataLoader(train_data, batch_size=1, shuffle=True, num_workers=4)
-    val_loader = data.DataLoader(val_data, batch_size=1, shuffle=False, num_workers=4)
+    train_loader = data.DataLoader(train_data, batch_size=1, shuffle=True, num_workers=2)
+    val_loader = data.DataLoader(val_data, batch_size=1, shuffle=False, num_workers=2)
 
     return train_loader, val_loader
 
-import torchvision.utils as vutils
-import matplotlib.pyplot as plt
+# 计算 PSNR
+def calculate_psnr(original, reconstructed, max_value=255.0):
+    # 计算均方误差 MSE
+    mse = F.mse_loss(reconstructed, original)
+
+    # 计算 PSNR
+    psnr = 10 * torch.log10((max_value ** 2) / mse)
+
+    return psnr.item()  # 返回 PSNR 值
+
 
 def train_model(hnet, rnet, train_loader, val_loader):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # 最佳权重
+    best_hnet_model = copy.deepcopy(hnet.state_dict)
+    best_rnet_model = copy.deepcopy(rnet.state_dict)
 
     # 定义损失函数和优化器
     mse_loss = nn.MSELoss()
@@ -86,10 +103,11 @@ def train_model(hnet, rnet, train_loader, val_loader):
     rnet.to(device)
 
     # 训练参数
-    epochs = 10
+    epochs = 50
     tortal_secret_loss = 0.0
     secret_nums = 0
     start_time = time.time()
+    min_mse = 0
     # 开始训练
     hnet.train()
     rnet.train()
@@ -97,6 +115,8 @@ def train_model(hnet, rnet, train_loader, val_loader):
     for epoch in range(epochs):
         last_secret_img = None
         last_decoded_img = None
+        total_psnr = 0.0
+        count_psnr = 0
 
         for step, (cover_img, secret_img) in enumerate(train_loader):
             # 拼接图像
@@ -115,6 +135,12 @@ def train_model(hnet, rnet, train_loader, val_loader):
             secret_loss = mse_loss(secret_img, decode)
             tortal_secret_loss += secret_loss.item()
             secret_nums += secret_img.size(0)
+
+            # 计算当前批次的 PSNR
+            psnr_value = calculate_psnr(secret_img, decode)
+            total_psnr += psnr_value
+            count_psnr += 1
+
             # 反向传播和优化
             optimizer.zero_grad()
             secret_loss.backward()
@@ -124,12 +150,22 @@ def train_model(hnet, rnet, train_loader, val_loader):
             last_cover_img = cover_img.detach().cpu()
             last_secret_img = secret_img.detach().cpu()
             last_decoded_img = decode.detach().cpu()
-            last_combined_img = combined.detach().cpu()
+            last_combined_img = encode.detach().cpu()
+            # 保存模型
+            if secret_loss < min_mse:
+                min_mse = secret_loss
+                best_hnet_model = copy.deepcopy(hnet.state_dict())
+                best_rnet_model = copy.deepcopy(rnet.state_dict())
 
             end_time = time.time()
 
-            # 输出当前 epoch 的训练损失
-        print(f'Epoch [{epoch + 1}/{epochs}], Loss: {tortal_secret_loss / secret_nums :.4f}, Time: {end_time - start_time:.2f} s')
+        # 保存当前批次中的最优模型
+        torch.save(best_hnet_model, 'checkpoints/best_hnet_model.pth')
+        torch.save(best_rnet_model, 'checkpoints/best_rnet_model.pth')
+
+        # 输出当前 epoch 的训练损失和 PSNR
+        avg_psnr = total_psnr / count_psnr if count_psnr > 0 else 0
+        print(f'Epoch [{epoch + 1}/{epochs}], Loss: {tortal_secret_loss / secret_nums:.4f}, PSNR: {avg_psnr:.2f} dB, Time: {end_time - start_time:.2f} s')
 
         # 可视化最后一个批次的四个图像
         visualize_images(last_cover_img, last_secret_img, last_combined_img, last_decoded_img, epoch)
@@ -139,19 +175,17 @@ def visualize_images(cover_imgs, secret_imgs, combined_imgs, decoded_imgs, epoch
     """
     可视化四个图像：原始封面图像、原始秘密图像、结合图像和解密后的秘密图像。
     """
-    # 确保每个输入图像是 4D 张量
+    # # 确保每个输入图像是 4D 张量
     cover_imgs = torch.squeeze(cover_imgs, dim=0)
     secret_imgs = torch.squeeze(secret_imgs, dim=0)
-    # combined_imgs = torch.squeeze(combined_imgs, dim=0)
-    # decoded_imgs = torch.squeeze(decoded_imgs, dim=0)
 
     # 将 6 通道图像通过平均通道来压缩为 3 通道
-    combined_imgs_rgb = combined_imgs.mean(dim=1, keepdim=False)
+    # combined_imgs_rgb = combined_imgs.mean(dim=1, keepdim=False)
 
     # 创建图像网格
     cover_grid = vutils.make_grid(cover_imgs, nrow=2, normalize=True, scale_each=True)
     secret_grid = vutils.make_grid(secret_imgs, nrow=2, normalize=True, scale_each=True)
-    combined_grid = vutils.make_grid(combined_imgs_rgb, nrow=2, normalize=True, scale_each=True)
+    combined_grid = vutils.make_grid(combined_imgs, nrow=2, normalize=True, scale_each=True)
     decoded_grid = vutils.make_grid(decoded_imgs, nrow=2, normalize=True, scale_each=True)
 
     # 打印图像维度
@@ -186,7 +220,7 @@ def visualize_images(cover_imgs, secret_imgs, combined_imgs, decoded_imgs, epoch
     plt.axis('off')
 
     # 保存或显示图像
-    plt.savefig(f'epoch_{epoch + 1}_images.png')
+    plt.savefig(f'./results/epoch_{epoch + 1}_images.png')
     plt.show()
 
 
@@ -194,7 +228,7 @@ if __name__ == '__main__':
     hnet = model.HidingNet()
     rnet = model.RevealNet()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(torch.cuda.is_available())
+    # print(torch.cuda.is_available())
     hnet = hnet.to(device)
     rnet = rnet.to(device)
     # 处理数据

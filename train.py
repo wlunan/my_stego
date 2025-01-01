@@ -13,72 +13,37 @@ import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset, DataLoader
 import torch.utils.data as data
-import model
-import os
-from PIL import Image
+import models.model as model
 import torchvision.utils as vutils
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
+from torch.utils.tensorboard import SummaryWriter
 
-class BatchSplitDataset(Dataset):
-    def __init__(self, root_dir, batch_size, transform=None):
-        self.root_dir = root_dir
-        self.images = sorted(os.listdir(root_dir))
-        self.batch_size = batch_size
-        self.transform = transform
-
-        if len(self.images) % batch_size != 0:
-            raise ValueError("Total number of images must be divisible by the batch size.")
-
-    def __len__(self):
-        # 每个批次返回一个封面和秘密图像对
-        return len(self.images) // self.batch_size
-
-    def __getitem__(self, idx):
-        # 定位到当前批次的起始索引
-        start_idx = idx * self.batch_size
-        batch_images = self.images[start_idx:start_idx + self.batch_size]
-
-        # 将批次拆分为封面和秘密图像路径
-        half_batch_size = self.batch_size // 2
-        cover_paths = batch_images[:half_batch_size]
-        secret_paths = batch_images[half_batch_size:]
-
-        # 加载封面图像和秘密图像
-        cover_imgs = [Image.open(os.path.join(self.root_dir, path)).convert("RGB") for path in cover_paths]
-        secret_imgs = [Image.open(os.path.join(self.root_dir, path)).convert("RGB") for path in secret_paths]
-
-        # 应用变换
-        if self.transform:
-            cover_imgs = [self.transform(img) for img in cover_imgs]
-            secret_imgs = [self.transform(img) for img in secret_imgs]
-
-        # 将封面图像和秘密图像拼接成 Tensor
-        cover_tensor = torch.stack(cover_imgs)  # shape: [batch_size/2, 3, H, W]
-        secret_tensor = torch.stack(secret_imgs)  # shape: [batch_size/2, 3, H, W]
-
-        return cover_tensor, secret_tensor
+# 自己添加的模块
+from datasets.data_loader import BatchSplitDataset
+from configs.config import Config
 
 def train_val_data_process():
-    ROOT_TRAIN = 'E:\\01data\DIV2K_HR\\train'
-    ROOT_VAL = 'E:/01data/DIV2K_HR/val'
-    BATCH_SIZE = 2
+    ROOT_TRAIN = Config.root_train
+    ROOT_VAL = Config.root_val
+    BATCH_SIZE = Config.batch_size
 
     train_transform = transforms.Compose([
       transforms.Resize((256, 256)),transforms.ToTensor()
     ])
     # 加载数据集
-    dataset = BatchSplitDataset(root_dir=ROOT_TRAIN, batch_size=BATCH_SIZE, transform=train_transform)
+    dataset = BatchSplitDataset(root_dir=ROOT_TRAIN, transform=train_transform)
     # 划分训练集和验证集
     train_data, val_data = data.random_split(dataset,
                                              lengths=[round(0.8*len(dataset)), round(0.2*len(dataset))])
-    train_loader = data.DataLoader(train_data, batch_size=1, shuffle=True, num_workers=2)
-    val_loader = data.DataLoader(val_data, batch_size=1, shuffle=False, num_workers=2)
+
+    train_loader = data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
+    val_loader = data.DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
 
     return train_loader, val_loader
 
 # 计算 PSNR
-def calculate_psnr(original, reconstructed, max_value=255.0):
+def calculate_psnr(original, reconstructed, max_value=1.0):
     # 计算均方误差 MSE
     mse = F.mse_loss(reconstructed, original)
 
@@ -87,27 +52,34 @@ def calculate_psnr(original, reconstructed, max_value=255.0):
 
     return psnr.item()  # 返回 PSNR 值
 
-
 def train_model(hnet, rnet, train_loader, val_loader):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+    writer = SummaryWriter("logs")
     # 最佳权重
     best_hnet_model = copy.deepcopy(hnet.state_dict)
     best_rnet_model = copy.deepcopy(rnet.state_dict)
 
     # 定义损失函数和优化器
-    mse_loss = nn.MSELoss()
-    optimizer = torch.optim.Adam(hnet.parameters(), lr=0.001)
+    mse_fun = nn.MSELoss()
+
+    r_optimizer = torch.optim.Adam(hnet.parameters(), lr=0.001)
+    h_optimizer = torch.optim.Adam(rnet.parameters(), lr=0.001)
 
     hnet.to(device)
     rnet.to(device)
 
     # 训练参数
-    epochs = 50
-    tortal_secret_loss = 0.0
+    epochs = Config.epochs
+
+    total_hnet_mseloss = 0.0 # 隐藏网络的损失 封面图像和结合图像之间的损失
+    cover_nums = 0
+    total_rnet_mseloss = 0.0 # 秘密图像的损失 秘密图像和解密图像之间的损失
     secret_nums = 0
+    sum_mseloss = 0.0 # 总的损失
+
     start_time = time.time()
-    min_mse = 0
+    min_sum_mseloss = 1
+
     # 开始训练
     hnet.train()
     rnet.train()
@@ -119,56 +91,81 @@ def train_model(hnet, rnet, train_loader, val_loader):
         count_psnr = 0
 
         for step, (cover_img, secret_img) in enumerate(train_loader):
+            # print(cover_img.shape)
+            # print(secret_img.shape)
             # 拼接图像
-            combined = torch.cat((cover_img, secret_img), dim=2)
-            combined = torch.squeeze(combined, dim=0)
+            combined = torch.cat((cover_img, secret_img), dim=0)
+            # print(combined.shape)
+            combined = torch.unsqueeze(combined, 0) # 增加一个维度
 
             # 放入GPU
+            cover_img = cover_img.to(device)
+            secret_img = secret_img.to(device)
             combined = combined.to(device)
             secret_img = secret_img.to(device)
 
             # 前向传播
-            encode = hnet(combined)
-            decode = rnet(encode)
+            container_img = hnet(combined)
+            rev_secret_img = rnet(container_img)
 
-            # 计算原始秘密图像和解密图像之间的损失
-            secret_loss = mse_loss(secret_img, decode)
-            tortal_secret_loss += secret_loss.item()
+            # 计算损失
+            hnet_loss = mse_fun(cover_img, container_img)
+            rnet_loss = mse_fun(secret_img, rev_secret_img)
+
+            total_hnet_mseloss += hnet_loss.item()
+            total_rnet_mseloss += rnet_loss.item()
+
             secret_nums += secret_img.size(0)
+            cover_nums += cover_img.size(0)
+            sum_mseloss += hnet_loss.item() + rnet_loss.item()
 
-            # 计算当前批次的 PSNR
-            psnr_value = calculate_psnr(secret_img, decode)
-            total_psnr += psnr_value
-            count_psnr += 1
+            # # 计算当前批次的 PSNR
+            # psnr_value = calculate_psnr(secret_img, decode)
+            # total_psnr += psnr_value
+            # count_psnr += 1
 
             # 反向传播和优化
-            optimizer.zero_grad()
-            secret_loss.backward()
-            optimizer.step()
+            h_optimizer.zero_grad()
+            r_optimizer.zero_grad()
+
+            # hnet_loss.backward()
+            rnet_loss.backward() # 因为是作为一个整体训练的，所以只需要反向传播一次
+
+            h_optimizer.step()
+            r_optimizer.step()
 
             # 保存最后一个批次的四个图像
             last_cover_img = cover_img.detach().cpu()
             last_secret_img = secret_img.detach().cpu()
-            last_decoded_img = decode.detach().cpu()
-            last_combined_img = encode.detach().cpu()
-            # 保存模型
-            if secret_loss < min_mse:
-                min_mse = secret_loss
+            last_combined_img = container_img.detach().cpu()
+            last_rev_secret_img = rev_secret_img.detach().cpu()
+
+            # 保存模型 当前批次的损失小于最小损失
+            if sum_mseloss < min_sum_mseloss:
+                min_sum_mseloss = sum_mseloss
                 best_hnet_model = copy.deepcopy(hnet.state_dict())
                 best_rnet_model = copy.deepcopy(rnet.state_dict())
+
+            # 记录训练损失
+            writer.add_scalar("Hnet Loss", total_hnet_mseloss / cover_nums, epoch * len(train_loader) + step)
+            writer.add_scalar("Rnet Loss", total_rnet_mseloss / secret_nums, epoch * len(train_loader) + step)
+            writer.add_scalar("Train Loss", sum_mseloss, epoch * len(train_loader) + step)
 
             end_time = time.time()
 
         # 保存当前批次中的最优模型
-        torch.save(best_hnet_model, 'checkpoints/best_hnet_model.pth')
-        torch.save(best_rnet_model, 'checkpoints/best_rnet_model.pth')
+        torch.save(best_hnet_model,
+                   'checkpoints/'+f'批次总损失：{sum_mseloss} 隐藏损失：{hnet_loss} 秘密图像损失{rnet_loss}'+'best_hnet_model.pth')
+        torch.save(best_rnet_model,
+                   'checkpoints/'+f'批次总损失：{sum_mseloss} 隐藏损失：{hnet_loss} 秘密图像损失{rnet_loss}'+'best_rnet_model.pth')
 
         # 输出当前 epoch 的训练损失和 PSNR
-        avg_psnr = total_psnr / count_psnr if count_psnr > 0 else 0
-        print(f'Epoch [{epoch + 1}/{epochs}], Loss: {tortal_secret_loss / secret_nums:.4f}, PSNR: {avg_psnr:.2f} dB, Time: {end_time - start_time:.2f} s')
+        # avg_psnr = total_psnr / count_psnr if count_psnr > 0 else 0
+        # print(f'Epoch [{epoch + 1}/{epochs}], Loss: {total_hnet_mseloss / secret_nums:.4f}, PSNR: {avg_psnr:.2f} dB, Time: {end_time - start_time:.2f} s')
+        print(f'Epoch [{epoch + 1}/{epochs}], Loss: {sum_mseloss / secret_nums:.4f} Time: {end_time - start_time:.2f} s')
 
         # 可视化最后一个批次的四个图像
-        visualize_images(last_cover_img, last_secret_img, last_combined_img, last_decoded_img, epoch)
+        visualize_images(last_cover_img, last_secret_img, last_combined_img, last_rev_secret_img, epoch)
 
 
 def visualize_images(cover_imgs, secret_imgs, combined_imgs, decoded_imgs, epoch):
@@ -176,8 +173,8 @@ def visualize_images(cover_imgs, secret_imgs, combined_imgs, decoded_imgs, epoch
     可视化四个图像：原始封面图像、原始秘密图像、结合图像和解密后的秘密图像。
     """
     # # 确保每个输入图像是 4D 张量
-    cover_imgs = torch.squeeze(cover_imgs, dim=0)
-    secret_imgs = torch.squeeze(secret_imgs, dim=0)
+    # cover_imgs = torch.squeeze(cover_imgs, dim=0)
+    # secret_imgs = torch.squeeze(secret_imgs, dim=0)
 
     # 将 6 通道图像通过平均通道来压缩为 3 通道
     # combined_imgs_rgb = combined_imgs.mean(dim=1, keepdim=False)
@@ -189,12 +186,11 @@ def visualize_images(cover_imgs, secret_imgs, combined_imgs, decoded_imgs, epoch
     decoded_grid = vutils.make_grid(decoded_imgs, nrow=2, normalize=True, scale_each=True)
 
     # 打印图像维度
-    print(f"Cover Image Shape: {cover_imgs.shape}, Secret Image Shape: {secret_imgs.shape}")
-    print(f"Combined Image Shape: {combined_imgs.shape}, Decoded Image Shape: {decoded_imgs.shape}")
+    # print(f"Cover Image Shape: {cover_imgs.shape}, Secret Image Shape: {secret_imgs.shape}")
+    # print(f"Combined Image Shape: {combined_imgs.shape}, Decoded Image Shape: {decoded_imgs.shape}")
 
     # 使用 Matplotlib 显示
     plt.figure(figsize=(15, 10))
-
     # 原始封面图像
     plt.subplot(2, 2, 1)
     plt.title(f'Epoch {epoch + 1} - Cover Image')

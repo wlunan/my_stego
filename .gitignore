@@ -1,0 +1,10 @@
+# Model files
+*.pt
+*.h5
+*.pth
+# Image files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp

@@ -38,15 +38,13 @@
 ## 环境配置
 1. 创建虚拟环境（推荐）
 ```bash
-conda create -n stegan python=3.8
+conda create -n stegan python=3.9
 conda activate stegan
 ```
-
 2. 安装依赖
 ```bash
-pip install -r requirements.txt
+conda create --name stegan --file requirements.txt
 ```
-
 ## 使用方法
 1. 准备数据集
    - 将训练图像放入 `datasets/train/` 目录
@@ -78,7 +76,7 @@ python train.py
 
 ## 作者
 - 作者：xiaonan
-- 邮箱：itjunhao@qq.com
+- 邮箱：ihshao@outlook.com
 
 ## 许可证
 本项目采用 MIT 许可证

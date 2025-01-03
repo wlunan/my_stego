@@ -6,6 +6,8 @@
 """
 import copy
 import time
+import os
+from datetime import datetime
 
 import torch
 import torch.nn as nn
@@ -21,15 +23,25 @@ from torch.utils.tensorboard import SummaryWriter
 
 # 自己添加的模块
 from datasets.data_loader import BatchSplitDataset
-from configs.config import Config
+from configs.config import Config as cfg
+from utils.metrics import ImageQualityMetrics  # 导入评价指标工具类
+
+def log_print(*args, **kwargs):
+    """
+    同时将信息打印到控制台和写入到日志文件
+    """
+    print(*args, **kwargs)  # 打印到控制台
+    # 将信息写入到日志文件
+    with open(cfg.train_log_file, 'a', encoding='utf-8') as f:
+        print(*args, file=f, **kwargs)  # 写入到文件
 
 def train_val_data_process():
-    ROOT_TRAIN = Config.root_train
-    ROOT_VAL = Config.root_val
-    BATCH_SIZE = Config.batch_size
+    ROOT_TRAIN = cfg.root_train
+    ROOT_VAL = cfg.root_val
+    BATCH_SIZE = cfg.batch_size
 
     train_transform = transforms.Compose([
-      transforms.Resize((256, 256)),transforms.ToTensor()
+      transforms.Resize(cfg.Resize),transforms.ToTensor()
     ])
     # 加载数据集
     dataset = BatchSplitDataset(root_dir=ROOT_TRAIN, transform=train_transform)
@@ -37,28 +49,19 @@ def train_val_data_process():
     train_data, val_data = data.random_split(dataset,
                                              lengths=[round(0.8*len(dataset)), round(0.2*len(dataset))])
 
-    train_loader = data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
-    val_loader = data.DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
+    train_loader = data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, num_workers=cfg.num_workers)
+    val_loader = data.DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False, num_workers=cfg.num_workers)
 
     return train_loader, val_loader
 
-# 计算 PSNR
-def calculate_psnr(original, reconstructed, max_value=1.0):
-    # 确保目标张量有批量维度
-    if original.dim() == 3:  # 如果没有批量维度
-        original = original.unsqueeze(0)
-
-    # 计算均方误差 MSE
-    mse = F.mse_loss(reconstructed, original)
-
-    # 计算 PSNR
-    psnr = 10 * torch.log10((max_value ** 2) / mse)
-
-    return psnr.item()  # 返回 PSNR 值
-
-def train_model(hnet, rnet, train_loader, val_loader):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    writer = SummaryWriter("logs")
+def train_model(hnet, rnet, train_loader, val_loader, writer):
+    # # 创建本次训练的所有相关目录
+    # cfg.create_dirs()
+    
+    device = torch.device(cfg.device)
+    # 修改tensorboard日志保存路径
+    # writer = SummaryWriter(cfg.logs_dir)
+    
     # 最佳权重
     best_hnet_model = copy.deepcopy(hnet.state_dict)
     best_rnet_model = copy.deepcopy(rnet.state_dict)
@@ -73,7 +76,7 @@ def train_model(hnet, rnet, train_loader, val_loader):
     rnet.to(device)
 
     # 训练参数
-    epochs = Config.epochs
+    epochs = cfg.epochs
 
     total_hnet_mseloss = 0.0 # 隐藏网络的损失 封面图像和结合图像之间的损失
     cover_nums = 0
@@ -98,8 +101,8 @@ def train_model(hnet, rnet, train_loader, val_loader):
         count_psnr = 0
 
         for step, (cover_img, secret_img) in enumerate(train_loader):
-            # print(cover_img.shape)
-            # print(secret_img.shape)
+            # print(step, cover_img.shape, secret_img.shape)
+            
             # 拼接图像
             combined = torch.cat((cover_img, secret_img), dim=0)
             # print(combined.shape)
@@ -130,8 +133,8 @@ def train_model(hnet, rnet, train_loader, val_loader):
             cover_nums += cover_img.size(0)
             sum_mseloss += total_loss.item()
 
-            # 计算当前批次的 PSNR，秘密图像和解密图像之间的 PSNR
-            psnr_value = calculate_psnr(secret_img, rev_secret_img)
+            # 使用评价指标工具类计算PSNR
+            psnr_value = ImageQualityMetrics.calculate_psnr(secret_img, rev_secret_img)
             total_psnr += psnr_value
             count_psnr += 1
 
@@ -152,11 +155,19 @@ def train_model(hnet, rnet, train_loader, val_loader):
             last_combined_img = container_img.detach().cpu()
             last_rev_secret_img = rev_secret_img.detach().cpu()
 
-            # 保存模型 当前批次的损失小于最小损失
+            # 保存模型 当前批次的总损失小于最小总损失
             if sum_mseloss < min_sum_mseloss:
                 min_sum_mseloss = sum_mseloss
                 best_hnet_model = copy.deepcopy(hnet.state_dict())
                 best_rnet_model = copy.deepcopy(rnet.state_dict())
+                
+                # 使用新的保存路径
+                checkpoint_name = f'epoch_{epoch + 1}_loss_{sum_mseloss:.5f}'
+                hnet_path = os.path.join(cfg.checkpoints_dir, f'{checkpoint_name}_hnet.pth')
+                rnet_path = os.path.join(cfg.checkpoints_dir, f'{checkpoint_name}_rnet.pth')
+                
+                torch.save(best_hnet_model, hnet_path)
+                torch.save(best_rnet_model, rnet_path)
 
             # 记录训练损失
             writer.add_scalar("Hnet Loss", total_hnet_mseloss / cover_nums, epoch * len(train_loader) + step)
@@ -165,15 +176,16 @@ def train_model(hnet, rnet, train_loader, val_loader):
 
             end_time = time.time()
 
-        # 每十轮保存一次
-        torch.save(best_hnet_model,
-                   f'checkpoints/epoch_{epoch + 1}_sum_loss_{sum_mseloss:.5f}_hnet_loss_{hnet_loss:.5f}_rnet_loss_{rnet_loss:.5f}_best_hnet_model.pth')
-        torch.save(best_rnet_model,
-                   f'checkpoints/epoch_{epoch + 1}_sum_loss_{sum_mseloss:.5f}_hnet_loss_{hnet_loss:.5f}_rnet_loss_{rnet_loss:.5f}_best_rnet_model.pth')
 
         # 输出当前 epoch 的训练损失和 PSNR
         avg_psnr = total_psnr / count_psnr if count_psnr > 0 else 0
-        print(f'Epoch [{epoch + 1}/{epochs}], Loss: {total_hnet_mseloss / secret_nums:.4f}, PSNR: {avg_psnr:.2f} dB, Time: {end_time - start_time:.2f} s')
+        # print(f'Epoch [{epoch + 1}/{epochs}], HLoss: {total_hnet_mseloss / secret_nums:.4f}, PSNR: {avg_psnr:.2f} dB, Time: {end_time - start_time:.2f} s')
+        log_print(
+            f'Epoch [{epoch + 1}/{epochs}], '
+            f'HLoss: {total_hnet_mseloss / secret_nums:.4f}, '
+            f'PSNR: {avg_psnr:.2f} dB, '
+            f'Time: {end_time - start_time:.2f} s'
+        )
         # print(f'Epoch [{epoch + 1}/{epochs}], Loss: {sum_mseloss / secret_nums:.4f} Time: {end_time - start_time:.2f} s')
 
         # 可视化最后一个批次的四个图像
@@ -229,19 +241,40 @@ def visualize_images(cover_imgs, secret_imgs, combined_imgs, decoded_imgs, epoch
     plt.imshow(decoded_grid.permute(1, 2, 0))  # 转换为 HWC 格式
     plt.axis('off')
 
-    # 保存或显示图像
-    plt.savefig(f'./results/epoch_{epoch + 1}_images.png', bbox_inches='tight')
-    plt.show()
+    # 修改图像保存路径
+    save_path = os.path.join(cfg.images_dir, f'epoch_{epoch + 1}_images.png')
+    plt.savefig(save_path, bbox_inches='tight')
+    plt.close()  # 添加这行来关闭图像，防止内存泄漏
 
+def create_dirs():
+    # 创建必要的目录
+    os.makedirs(cfg.current_results_dir, exist_ok=True)
+    os.makedirs(cfg.checkpoints_dir, exist_ok=True)
+    os.makedirs(cfg.images_dir, exist_ok=True)
+    os.makedirs(cfg.logs_dir, exist_ok=True)
+    
+    # 创建并初始化日志文件
+    with open(cfg.train_log_file, 'w', encoding='utf-8') as f:
+        f.write(f"训练开始时间: {cfg.time_str}\n")
+        f.write("-" * 50 + "\n")
 
 if __name__ == '__main__':
+
+    create_dirs()
+    # 创建writer
+    writer = SummaryWriter(cfg.logs_dir)
+    
+    log_print(f"开始训练 - 保存路径: {cfg.current_results_dir}")
     hnet = model.HidingNet()
     rnet = model.RevealNet()
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    # print(torch.cuda.is_available())
+    
+    device = torch.device(cfg.device)
     hnet = hnet.to(device)
     rnet = rnet.to(device)
-    # 处理数据
+    
     train_loader, val_loader = train_val_data_process()
-    # 开始训练
-    train_model(hnet, rnet, train_loader, val_loader)
+    log_print('------------------开始训练------------------')
+    
+    train_model(hnet, rnet, train_loader, val_loader, writer)
+    writer.close()
+    

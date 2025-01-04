@@ -26,14 +26,6 @@ from datasets.data_loader import BatchSplitDataset
 from configs.config import Config as cfg
 from utils.metrics import ImageQualityMetrics  # 导入评价指标工具类
 
-def log_print(*args, **kwargs):
-    """
-    同时将信息打印到控制台和写入到日志文件
-    """
-    print(*args, **kwargs)  # 打印到控制台
-    # 将信息写入到日志文件
-    with open(cfg.train_log_file, 'a', encoding='utf-8') as f:
-        print(*args, file=f, **kwargs)  # 写入到文件
 
 def train_val_data_process():
     ROOT_TRAIN = cfg.root_train
@@ -75,34 +67,31 @@ def train_model(hnet, rnet, train_loader, val_loader, writer):
     hnet.to(device)
     rnet.to(device)
 
-    # 训练参数
+    # 训练前设置的参数
     epochs = cfg.epochs
-
-    total_hnet_mseloss = 0.0 # 隐藏网络的损失 封面图像和结合图像之间的损失
-    cover_nums = 0
-    total_rnet_mseloss = 0.0 # 秘密图像的损失 秘密图像和解密图像之间的损失
-    secret_nums = 0
-    sum_mseloss = 0.0 # 总的损失
-
-    total_rnet_psnr = 0.0 # 一个epoch中的总PSNR
-    secret_nums = 0
-
     start_time = time.time()
-    min_sum_mseloss = 1
+    min_mseloss = 1 # 每个图像的最小损失
 
     # 开始训练
     hnet.train()
     rnet.train()
 
     for epoch in range(epochs):
+        # 每个批次设置的参数
+        last_cover_img = None
+        last_combined_img = None
         last_secret_img = None
-        last_decoded_img = None
-        total_psnr = 0.0
-        count_psnr = 0
+        last_rev_secret_img = None
+
+        total_hnet_mseloss = 0.0  # 隐藏网络的损失 封面图像和结合图像之间的损失
+        cover_nums = 0
+        total_rnet_mseloss = 0.0  # 秘密图像的损失 秘密图像和解密图像之间的损失
+        secret_nums = 0
+        total_rnet_psnr = 0.0  # 一个epoch中的揭示的总的PSNR
+        total_mseloss = 0.0  # 总的损失
 
         for step, (cover_img, secret_img) in enumerate(train_loader):
             # print(step, cover_img.shape, secret_img.shape)
-            
             # 拼接图像
             combined = torch.cat((cover_img, secret_img), dim=0)
             # print(combined.shape)
@@ -131,12 +120,11 @@ def train_model(hnet, rnet, train_loader, val_loader, writer):
 
             secret_nums += secret_img.size(0)
             cover_nums += cover_img.size(0)
-            sum_mseloss += total_loss.item()
+            total_mseloss += total_loss.item()
 
             # 使用评价指标工具类计算PSNR
             psnr_value = ImageQualityMetrics.calculate_psnr(secret_img, rev_secret_img)
-            total_psnr += psnr_value
-            count_psnr += 1
+            total_rnet_psnr += psnr_value
 
             # 反向传播和优化
             h_optimizer.zero_grad()
@@ -154,37 +142,42 @@ def train_model(hnet, rnet, train_loader, val_loader, writer):
             last_secret_img = secret_img.detach().cpu()
             last_combined_img = container_img.detach().cpu()
             last_rev_secret_img = rev_secret_img.detach().cpu()
+        ### 每个epoch结束后的操作
+        # 计算每个epoch的平均损失
+        avg_hnet_mseloss = total_hnet_mseloss / cover_nums
+        avg_rnet_mseloss = total_rnet_mseloss / secret_nums
+        avg_psnr = total_rnet_psnr / secret_nums if secret_nums > 0 else 0
+        avg_total_mseloss = avg_hnet_mseloss + avg_rnet_mseloss
+        # 保存模型 当前epoch次的总损失小于最小总损失,并且epoch是10的倍数,减少保存次数
+        if avg_total_mseloss < min_mseloss and epoch % 10 == 0:
+            min_mseloss = avg_total_mseloss
+            best_hnet_model = copy.deepcopy(hnet.state_dict())
+            best_rnet_model = copy.deepcopy(rnet.state_dict())
 
-            # 保存模型 当前批次的总损失小于最小总损失
-            if sum_mseloss < min_sum_mseloss:
-                min_sum_mseloss = sum_mseloss
-                best_hnet_model = copy.deepcopy(hnet.state_dict())
-                best_rnet_model = copy.deepcopy(rnet.state_dict())
-                
-                # 使用新的保存路径
-                checkpoint_name = f'epoch_{epoch + 1}_loss_{sum_mseloss:.5f}'
-                hnet_path = os.path.join(cfg.checkpoints_dir, f'{checkpoint_name}_hnet.pth')
-                rnet_path = os.path.join(cfg.checkpoints_dir, f'{checkpoint_name}_rnet.pth')
-                
-                torch.save(best_hnet_model, hnet_path)
-                torch.save(best_rnet_model, rnet_path)
+            # 使用新的保存路径
+            checkpoint_name = f'epoch_{epoch + 1}_HLoss_{avg_hnet_mseloss:.4f}_RLoss_{avg_rnet_mseloss:.4f}_PSNR_{avg_psnr:.2f}'
+            hnet_path = os.path.join(cfg.checkpoints_dir, f'{checkpoint_name}_hnet.pth')
+            rnet_path = os.path.join(cfg.checkpoints_dir, f'{checkpoint_name}_rnet.pth')
 
-            # 记录训练损失
-            writer.add_scalar("Hnet Loss", total_hnet_mseloss / cover_nums, epoch * len(train_loader) + step)
-            writer.add_scalar("Rnet Loss", total_rnet_mseloss / secret_nums, epoch * len(train_loader) + step)
-            writer.add_scalar("Train Loss", sum_mseloss, epoch * len(train_loader) + step)
+            torch.save(best_hnet_model, hnet_path)
+            torch.save(best_rnet_model, rnet_path)
 
-            end_time = time.time()
+        # 记录训练损失
+        writer.add_scalar("Hnet Loss", avg_hnet_mseloss, epoch+1)
+        writer.add_scalar("Rnet Loss", avg_rnet_mseloss, epoch+1)
+        writer.add_scalar("secrect psnr Loss", avg_psnr, epoch+1)
 
+        end_time = time.time()
 
         # 输出当前 epoch 的训练损失和 PSNR
-        avg_psnr = total_psnr / count_psnr if count_psnr > 0 else 0
         # print(f'Epoch [{epoch + 1}/{epochs}], HLoss: {total_hnet_mseloss / secret_nums:.4f}, PSNR: {avg_psnr:.2f} dB, Time: {end_time - start_time:.2f} s')
+        # 记录的损失是每个epoch的平均损失
         log_print(
             f'Epoch [{epoch + 1}/{epochs}], '
-            f'HLoss: {total_hnet_mseloss / secret_nums:.4f}, '
-            f'PSNR: {avg_psnr:.2f} dB, '
-            f'Time: {end_time - start_time:.2f} s'
+            f'HLoss: {avg_hnet_mseloss:.4f}, '
+            f'RLoss: {avg_rnet_mseloss:.4f}, '
+            f'PSNR: {avg_psnr:.2f}dB, '
+            f'Time: {end_time - start_time:.2f}s'
         )
         # print(f'Epoch [{epoch + 1}/{epochs}], Loss: {sum_mseloss / secret_nums:.4f} Time: {end_time - start_time:.2f} s')
 
@@ -257,6 +250,15 @@ def create_dirs():
     with open(cfg.train_log_file, 'w', encoding='utf-8') as f:
         f.write(f"训练开始时间: {cfg.time_str}\n")
         f.write("-" * 50 + "\n")
+
+def log_print(*args, **kwargs):
+    """
+    同时将信息打印到控制台和写入到日志文件
+    """
+    print(*args, **kwargs)  # 打印到控制台
+    # 将信息写入到日志文件
+    with open(cfg.train_log_file, 'a', encoding='utf-8') as f:
+        print(*args, file=f, **kwargs)  # 写入到文件
 
 if __name__ == '__main__':
 

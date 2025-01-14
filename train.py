@@ -46,6 +46,54 @@ def train_val_data_process():
 
     return train_loader, val_loader
 
+def validate_model(hnet, rnet, val_loader, device):
+    """
+    在验证集上评估模型
+    
+    Args:
+        hnet: HidingNet模型
+        rnet: RevealNet模型
+        val_loader: 验证数据加载器
+        device: 设备
+    """
+    hnet.eval()
+    rnet.eval()
+    
+    total_cover_psnr = 0
+    total_secret_psnr = 0
+    val_count = 0
+    
+    with torch.no_grad():
+        for cover_img, secret_img in val_loader:
+            # 将数据移到设备上
+            cover_img = cover_img.to(device)
+            secret_img = secret_img.to(device)
+            
+            # 合并图像
+            combined = torch.cat((cover_img, secret_img), dim=0)
+            combined = combined.unsqueeze(0)
+            
+            # 前向传播
+            combined_img = hnet(combined)
+            decoded_img = rnet(combined_img)
+            
+            # 计算PSNR
+            cover_psnr = ImageQualityMetrics.calculate_psnr(cover_img, combined_img)
+            secret_psnr = ImageQualityMetrics.calculate_psnr(secret_img, decoded_img)
+            # 计算mse
+            # cover_mse = F.mse_loss(cover_img, combined_img)
+            # secret_mse = F.mse_loss(secret_img, decoded_img)
+
+            total_cover_psnr += cover_psnr
+            total_secret_psnr += secret_psnr
+            val_count += 1
+    
+    # 计算平均PSNR
+    avg_cover_psnr = total_cover_psnr / val_count
+    avg_secret_psnr = total_secret_psnr / val_count
+    
+    return avg_cover_psnr, avg_secret_psnr
+
 def train_model(hnet, rnet, train_loader, val_loader, writer):
     # # 创建本次训练的所有相关目录
     # cfg.create_dirs()
@@ -149,18 +197,18 @@ def train_model(hnet, rnet, train_loader, val_loader, writer):
         avg_psnr = total_rnet_psnr / secret_nums if secret_nums > 0 else 0
         avg_total_mseloss = avg_hnet_mseloss + avg_rnet_mseloss
         # 保存模型 当前epoch次的总损失小于最小总损失,并且epoch是10的倍数,减少保存次数
-        if avg_total_mseloss < min_mseloss and epoch % 10 == 0:
-            min_mseloss = avg_total_mseloss
-            best_hnet_model = copy.deepcopy(hnet.state_dict())
-            best_rnet_model = copy.deepcopy(rnet.state_dict())
-
-            # 使用新的保存路径
-            checkpoint_name = f'epoch_{epoch + 1}_HLoss_{avg_hnet_mseloss:.4f}_RLoss_{avg_rnet_mseloss:.4f}_PSNR_{avg_psnr:.2f}'
-            hnet_path = os.path.join(cfg.checkpoints_dir, f'{checkpoint_name}_hnet.pth')
-            rnet_path = os.path.join(cfg.checkpoints_dir, f'{checkpoint_name}_rnet.pth')
-
-            torch.save(best_hnet_model, hnet_path)
-            torch.save(best_rnet_model, rnet_path)
+        # if avg_total_mseloss < min_mseloss and epoch % 10 == 0:
+        #     min_mseloss = avg_total_mseloss
+        #     best_hnet_model = copy.deepcopy(hnet.state_dict())
+        #     best_rnet_model = copy.deepcopy(rnet.state_dict())
+        #
+        #     # 使用新的保存路径
+        #     checkpoint_name = f'epoch_{epoch + 1}_HLoss_{avg_hnet_mseloss:.4f}_RLoss_{avg_rnet_mseloss:.4f}_PSNR_{avg_psnr:.2f}'
+        #     hnet_path = os.path.join(cfg.checkpoints_dir, f'{checkpoint_name}_hnet.pth')
+        #     rnet_path = os.path.join(cfg.checkpoints_dir, f'{checkpoint_name}_rnet.pth')
+        #
+        #     torch.save(best_hnet_model, hnet_path)
+        #     torch.save(best_rnet_model, rnet_path)
 
         # 记录训练损失
         writer.add_scalar("Hnet Loss", avg_hnet_mseloss, epoch+1)
@@ -184,6 +232,35 @@ def train_model(hnet, rnet, train_loader, val_loader, writer):
         # 可视化最后一个批次的四个图像
         visualize_images(last_cover_img, last_secret_img, last_combined_img, last_rev_secret_img, epoch)
 
+        # 验证阶段
+        val_cover_psnr, val_secret_psnr = validate_model(hnet, rnet, val_loader, device)
+        best_val_psnr = 0
+        total_val_psnr = val_cover_psnr+val_secret_psnr
+        # 记录验证结果
+        writer.add_scalar("Val/Cover PSNR", val_cover_psnr, epoch+1)
+        writer.add_scalar("Val/Secret PSNR", val_secret_psnr, epoch+1)
+        
+        # 打印训练和验证结果
+        log_print(
+            f'Epoch [{epoch + 1}/{epochs}], '
+            f'Train - HLoss: {avg_hnet_mseloss:.4f}, '
+            f'RLoss: {avg_rnet_mseloss:.4f}, '
+            f'Sectet PSNR: {avg_psnr:.2f}dB, '
+            f'Val - Cover PSNR: {val_cover_psnr:.2f}dB, '
+            f'Secret PSNR: {val_secret_psnr:.2f}dB, '
+            f'Time: {end_time - start_time:.2f}s'
+        )
+        
+        # 根据验证集性能保存最佳模型
+        if total_val_psnr > best_val_psnr and epoch % 10 == 0:
+            best_val_psnr = total_val_psnr
+            checkpoint_name = f'epoch_{epoch + 1}_HLoss_{avg_hnet_mseloss:.4f}_RLoss_{avg_rnet_mseloss:.4f}_PSNR_{val_secret_psnr:.2f}'
+            hnet_path = os.path.join(cfg.checkpoints_dir, f'{checkpoint_name}_hnet.pth')
+            rnet_path = os.path.join(cfg.checkpoints_dir, f'{checkpoint_name}_rnet.pth')
+            
+            torch.save(hnet.state_dict(), hnet_path)
+            torch.save(rnet.state_dict(), rnet_path)
+            log_print(f'保存最佳模型 - Val total PSNR: {total_val_psnr:.2f}dB')
 
 def visualize_images(cover_imgs, secret_imgs, combined_imgs, decoded_imgs, epoch):
     """
@@ -268,7 +345,7 @@ if __name__ == '__main__':
     
     log_print(f"开始训练 - 保存路径: {cfg.current_results_dir}")
     hnet = model.HidingNet()
-    rnet = model.RevealNet()
+    rnet = model.RevealNet_2()
     
     device = torch.device(cfg.device)
     hnet = hnet.to(device)

@@ -4,8 +4,6 @@
 @Email : itjunhao@qq.com
 @File  : test.py        
 """
-
-
 from configs.config import Config
 import datasets.data_loader
 from torch.utils import data

@@ -220,13 +220,13 @@ def train_model(hnet, rnet, train_loader, val_loader, writer):
         # 输出当前 epoch 的训练损失和 PSNR
         # print(f'Epoch [{epoch + 1}/{epochs}], HLoss: {total_hnet_mseloss / secret_nums:.4f}, PSNR: {avg_psnr:.2f} dB, Time: {end_time - start_time:.2f} s')
         # 记录的损失是每个epoch的平均损失
-        log_print(
-            f'Epoch [{epoch + 1}/{epochs}], '
-            f'HLoss: {avg_hnet_mseloss:.4f}, '
-            f'RLoss: {avg_rnet_mseloss:.4f}, '
-            f'PSNR: {avg_psnr:.2f}dB, '
-            f'Time: {end_time - start_time:.2f}s'
-        )
+        # log_print(
+        #     f'Epoch [{epoch + 1}/{epochs}], '
+        #     f'HLoss: {avg_hnet_mseloss:.4f}, '
+        #     f'RLoss: {avg_rnet_mseloss:.4f}, '
+        #     f'PSNR: {avg_psnr:.2f}dB, '
+        #     f'Time: {end_time - start_time:.2f}s'
+        # )
         # print(f'Epoch [{epoch + 1}/{epochs}], Loss: {sum_mseloss / secret_nums:.4f} Time: {end_time - start_time:.2f} s')
 
         # 可视化最后一个批次的四个图像

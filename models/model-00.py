@@ -8,6 +8,8 @@
 import torch
 import torch.nn as nn
 from torchsummary import summary
+
+# 这个隐藏网络是U-net结构，但是没有跳跃连接
 class HidingNet(nn.Module):
     def __init__(self):
         super(HidingNet, self).__init__()

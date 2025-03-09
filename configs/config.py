@@ -14,10 +14,10 @@ import torch
 class Config:
     # 数据相关
     Resize = (256, 256) # 图片缩放尺寸
-    root_train = "E:\\01data\DIV2K_HR\\train"
-    root_val = "datasets/val" 
+    root_train = "/data/coding/DIV2K_train_HR"
+    root_val = "/data/coding/DIV2K_vaild_HR" 
     batch_size = 2
-    num_workers = 2
+    num_workers = 8
     
     # 训练相关
     epochs = 100
@@ -31,7 +31,7 @@ class Config:
     # 日志相关
     tensorboard_log_dir = "logs"
     checkpoint_dir = "checkpoints"
-    results_dir = "results"
+    base_results_dir = "/data/projects/my_stego/results" # 项目结果保存路径 不要加.
     
     # 设备相关
     device = "cuda" if torch.cuda.is_available() else "cpu"  # "cuda" or "cpu"
@@ -42,7 +42,6 @@ class Config:
     run_dir = f"{socket.gethostname()}_{time_str}"
     
     # 结果保存路径
-    base_results_dir = "results"
     current_results_dir = os.path.join(base_results_dir, run_dir)
     
     # 创建子目录

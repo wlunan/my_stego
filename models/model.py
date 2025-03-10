@@ -10,88 +10,31 @@ from torchsummary import summary
 
 # from models.MSFblock import MSFblock
 
-########
-
-import math
-import torch.nn as nn
+#### 门控融合单元
 import torch
-import math
+import torch.nn as nn
 import torch.nn.functional as F
+import math
 
-"""SHISRCNet: Super-resolution And Classification Network For Low-resolution Breast Cancer Histopathology Image"""
+class gatedFusion(nn.Module):
 
-class oneConv(nn.Module):
-    # 卷积+ReLU函数
-    def __init__(self, in_channels, out_channels, kernel_sizes, paddings, dilations):
-        super().__init__()
-        self.conv = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size = kernel_sizes, padding = paddings, dilation = dilations, bias=False),###, bias=False
-            # nn.BatchNorm2d(out_channels),
-            # nn.ReLU(inplace=True),
-        )
+    def __init__(self, dim):
+        super(gatedFusion, self).__init__()
+        self.fc1 = nn.Linear(dim, dim, bias=True)
+        self.fc2 = nn.Linear(dim, dim, bias=True)
 
-    def forward(self, x):
-        x = self.conv(x)
-        return x
-
-class MSFblock(nn.Module):
-    def __init__(self, in_channels):
-        super(MSFblock, self).__init__()
-        out_channels = in_channels
-
-        self.project = nn.Sequential(
-            nn.Conv2d(out_channels, out_channels, 1, bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(),)
-            #nn.Dropout(0.5))
-        self.gap = nn.AdaptiveAvgPool2d(1)
-        self.softmax = nn.Softmax(dim = 2)
-        self.Sigmoid = nn.Sigmoid()
-        self.SE1 = oneConv(in_channels,in_channels,1,0,1)
-        self.SE2 = oneConv(in_channels,in_channels,1,0,1)
-        self.SE3 = oneConv(in_channels,in_channels,1,0,1)
-        self.SE4 = oneConv(in_channels,in_channels,1,0,1)
-
-    def forward(self, x0,x1,x2,x3):
-        # x1/x2/x3/x4: (B,C,H,W)
-        y0 = x0
-        y1 = x1
-        y2 = x2
-        y3 = x3
-
-        # 通过池化聚合全局信息,然后通过1×1conv建模通道相关性: (B,C,H,W)-->GAP-->(B,C,1,1)-->SE1-->(B,C,1,1)
-        y0_weight = self.SE1(self.gap(x0))
-        y1_weight = self.SE2(self.gap(x1))
-        y2_weight = self.SE3(self.gap(x2))
-        y3_weight = self.SE4(self.gap(x3))
-
-        # 将多个尺度的全局信息进行拼接: (B,C,4,1)
-        weight = torch.cat([y0_weight,y1_weight,y2_weight,y3_weight],2)
-        # 首先通过sigmoid函数获得通道描述符表示, 然后通过softmax函数,求每个尺度的权重: (B,C,4,1)--> (B,C,4,1)
-        weight = self.softmax(self.Sigmoid(weight))
-
-        # weight[:,:,0]:(B,C,1); (B,C,1)-->unsqueeze-->(B,C,1,1)
-        y0_weight = torch.unsqueeze(weight[:,:,0],2)
-        y1_weight = torch.unsqueeze(weight[:,:,1],2)
-        y2_weight = torch.unsqueeze(weight[:,:,2],2)
-        y3_weight = torch.unsqueeze(weight[:,:,3],2)
-
-        # 将权重与对应的输入进行逐元素乘法: (B,C,1,1) * (B,C,H,W)= (B,C,H,W), 然后将多个尺度的输出进行相加
-        x_att = y0_weight*y0+y1_weight*y1+y2_weight*y2+y3_weight*y3
-        return self.project(x_att)
+    def forward(self, x1, x2):
+        x11 = self.fc1(x1)
+        x22 = self.fc2(x2)
+        # 通过门控单元生成权重表示
+        z = torch.sigmoid(x11+x22)
+        # 对两部分输入执行加权和
+        out = z*x1 + (1-z)*x2
+        return out
 
 
-# if __name__ == '__main__':
-#     # (B,C,H,W)
-#     x0 = torch.rand(1, 64, 192, 192)
-#     x1 = torch.rand(1, 64, 192, 192)
-#     x2 = torch.rand(1, 64, 192, 192)
-#     x3 = torch.rand(1, 64, 192, 192)
-#     Model = MSFblock(in_channels=64)
-#     out = Model(x0,x1,x2,x3)
-#     print(out.shape)
 
-#########
+####
 
 class Conv_4x4(nn.Module):
     def __init__(self, in_planes, out_planes):
@@ -135,17 +78,24 @@ class HidingNet(nn.Module):
             Deconv_4x4(512, 512),
         )
 
-        # MSFBlock
-        self.msf_block = MSFblock(512)  # 512是 `mid` 层的通道数
-
         # 上采样层 这里用到了跳跃连接
         self.up = nn.ModuleList([
-            Deconv_4x4(512+512, 1024),
+            Deconv_4x4(512+512, 1024), 
             Deconv_4x4(1024+512, 1024),
             Deconv_4x4(1024+512, 512),
             Deconv_4x4(512+256, 256),
             Deconv_4x4(256+128, 128),
             Deconv_4x4(128+64, 64),
+        ])
+
+         #### 门控融合单元
+        self.gated_fusions = nn.ModuleList([
+            gatedFusion(dim=512),
+            gatedFusion(dim=768),
+            gatedFusion(dim=768),
+            gatedFusion(dim=384),
+            gatedFusion(dim=192),
+            gatedFusion(dim=96),
         ])
 
         # 输出层
@@ -163,17 +113,28 @@ class HidingNet(nn.Module):
             x = self.down[i](x) # 把输入传入每个下采样层
             x_list.append(x)
 
-        ### 用MSF获取多个尺度的特征
-        # 通过 MSFblock 处理
-        x = self.msf_block(x, x, x, x)
-
         # 中间层
         x = self.mid(x)
 
         # 上采样层
         for i in range(6):
             # x_list[5-i]是对称下采样层的特征，i为0时 5-i为5，表示最后一层下采样层，dim=1表示在通道维度上拼接
-            x = torch.cat([x, x_list[5-i]], dim=1)
+            x_cat = torch.cat([x, x_list[5-i]], dim=1)
+
+            #### 分割拼接后的特征
+            split_size = int(x_cat.size(1)/2)
+            x1, x2 = torch.split(x_cat, [split_size, split_size], dim=1)
+
+            # 修改维度顺序 (B, C, H, W) -> (B, H, W, C)
+            x1 = x1.permute(0, 2, 3, 1)
+            x2 = x2.permute(0, 2, 3, 1)
+            # 应用门控融合单元
+            x = self.gated_fusions[i](x1, x2)
+
+            # 修改维度顺序 (B, H, W, C) -> (B, C, H, W)
+            x = x.permute(0, 3, 1, 2)
+            x = torch.cat([x, x], dim=1) # 拼接跳跃连接的特征
+            ###
             x = self.up[i](x)
 
         # 输出层
@@ -285,4 +246,4 @@ if __name__ == '__main__':
     model = HidingNet().to(device)
     # torch.save(model, 'hnet.pth')
     # print(summary(model, [(3, 256, 256), (3, 256, 256)]))
-    print(summary(model, [(3, 256, 256), (3, 256, 256)]))
+    print(summary(model, (6, 256, 256)))

@@ -1,0 +1,114 @@
+训练开始时间: 2025_03_10_09_53_26
+--------------------------------------------------
+开始训练 - 保存路径: /data/projects/my_stego/results/atwbwbrhrctqdkrk-snow-6c7f6b9696-7bgqc_2025_03_10_09_53_26
+------------------开始训练------------------
+Epoch [1/100], Train - HLoss: 0.0303, RLoss: 0.0314, Sectet PSNR: 16.18dB, Val - Cover PSNR: 23.17dB, Secret PSNR: 15.54dB, Time: 22.79s
+保存最佳模型 - Val total PSNR: 38.71dB
+Epoch [2/100], Train - HLoss: 0.0079, RLoss: 0.0145, Sectet PSNR: 19.64dB, Val - Cover PSNR: 23.06dB, Secret PSNR: 22.56dB, Time: 49.25s
+Epoch [3/100], Train - HLoss: 0.0047, RLoss: 0.0074, Sectet PSNR: 22.13dB, Val - Cover PSNR: 25.21dB, Secret PSNR: 21.18dB, Time: 74.90s
+Epoch [4/100], Train - HLoss: 0.0042, RLoss: 0.0069, Sectet PSNR: 22.47dB, Val - Cover PSNR: 25.81dB, Secret PSNR: 24.47dB, Time: 100.58s
+Epoch [5/100], Train - HLoss: 0.0028, RLoss: 0.0050, Sectet PSNR: 23.70dB, Val - Cover PSNR: 26.33dB, Secret PSNR: 23.31dB, Time: 125.94s
+Epoch [6/100], Train - HLoss: 0.0029, RLoss: 0.0052, Sectet PSNR: 23.57dB, Val - Cover PSNR: 23.03dB, Secret PSNR: 22.44dB, Time: 152.60s
+Epoch [7/100], Train - HLoss: 0.0031, RLoss: 0.0050, Sectet PSNR: 23.86dB, Val - Cover PSNR: 24.71dB, Secret PSNR: 22.20dB, Time: 181.22s
+Epoch [8/100], Train - HLoss: 0.0024, RLoss: 0.0044, Sectet PSNR: 24.39dB, Val - Cover PSNR: 26.63dB, Secret PSNR: 22.31dB, Time: 209.38s
+Epoch [9/100], Train - HLoss: 0.0026, RLoss: 0.0043, Sectet PSNR: 24.39dB, Val - Cover PSNR: 26.68dB, Secret PSNR: 22.32dB, Time: 237.22s
+Epoch [10/100], Train - HLoss: 0.0026, RLoss: 0.0046, Sectet PSNR: 24.19dB, Val - Cover PSNR: 26.01dB, Secret PSNR: 23.40dB, Time: 265.06s
+Epoch [11/100], Train - HLoss: 0.0024, RLoss: 0.0043, Sectet PSNR: 24.59dB, Val - Cover PSNR: 27.32dB, Secret PSNR: 25.59dB, Time: 293.41s
+保存最佳模型 - Val total PSNR: 52.91dB
+Epoch [12/100], Train - HLoss: 0.0023, RLoss: 0.0041, Sectet PSNR: 24.66dB, Val - Cover PSNR: 26.55dB, Secret PSNR: 25.36dB, Time: 322.38s
+Epoch [13/100], Train - HLoss: 0.0021, RLoss: 0.0036, Sectet PSNR: 25.21dB, Val - Cover PSNR: 26.92dB, Secret PSNR: 25.57dB, Time: 350.75s
+Epoch [14/100], Train - HLoss: 0.0020, RLoss: 0.0037, Sectet PSNR: 25.19dB, Val - Cover PSNR: 25.98dB, Secret PSNR: 22.23dB, Time: 378.65s
+Epoch [15/100], Train - HLoss: 0.0025, RLoss: 0.0037, Sectet PSNR: 25.15dB, Val - Cover PSNR: 27.75dB, Secret PSNR: 22.43dB, Time: 407.16s
+Epoch [16/100], Train - HLoss: 0.0022, RLoss: 0.0043, Sectet PSNR: 24.77dB, Val - Cover PSNR: 25.53dB, Secret PSNR: 23.33dB, Time: 435.00s
+Epoch [17/100], Train - HLoss: 0.0021, RLoss: 0.0036, Sectet PSNR: 25.39dB, Val - Cover PSNR: 24.54dB, Secret PSNR: 23.44dB, Time: 461.51s
+Epoch [18/100], Train - HLoss: 0.0019, RLoss: 0.0033, Sectet PSNR: 25.68dB, Val - Cover PSNR: 28.36dB, Secret PSNR: 24.62dB, Time: 487.36s
+Epoch [19/100], Train - HLoss: 0.0016, RLoss: 0.0033, Sectet PSNR: 25.63dB, Val - Cover PSNR: 28.55dB, Secret PSNR: 25.30dB, Time: 512.90s
+Epoch [20/100], Train - HLoss: 0.0022, RLoss: 0.0039, Sectet PSNR: 24.97dB, Val - Cover PSNR: 28.11dB, Secret PSNR: 26.24dB, Time: 538.45s
+Epoch [21/100], Train - HLoss: 0.0021, RLoss: 0.0042, Sectet PSNR: 25.20dB, Val - Cover PSNR: 28.16dB, Secret PSNR: 26.31dB, Time: 564.21s
+保存最佳模型 - Val total PSNR: 54.47dB
+Epoch [22/100], Train - HLoss: 0.0016, RLoss: 0.0030, Sectet PSNR: 26.08dB, Val - Cover PSNR: 28.15dB, Secret PSNR: 25.63dB, Time: 591.17s
+Epoch [23/100], Train - HLoss: 0.0017, RLoss: 0.0033, Sectet PSNR: 25.68dB, Val - Cover PSNR: 28.65dB, Secret PSNR: 26.10dB, Time: 616.58s
+Epoch [24/100], Train - HLoss: 0.0015, RLoss: 0.0031, Sectet PSNR: 25.99dB, Val - Cover PSNR: 28.88dB, Secret PSNR: 25.48dB, Time: 642.40s
+Epoch [25/100], Train - HLoss: 0.0015, RLoss: 0.0031, Sectet PSNR: 25.94dB, Val - Cover PSNR: 28.55dB, Secret PSNR: 26.59dB, Time: 668.22s
+Epoch [26/100], Train - HLoss: 0.0016, RLoss: 0.0032, Sectet PSNR: 26.01dB, Val - Cover PSNR: 28.89dB, Secret PSNR: 26.16dB, Time: 694.16s
+Epoch [27/100], Train - HLoss: 0.0015, RLoss: 0.0034, Sectet PSNR: 25.73dB, Val - Cover PSNR: 24.90dB, Secret PSNR: 19.38dB, Time: 720.00s
+Epoch [28/100], Train - HLoss: 0.0020, RLoss: 0.0035, Sectet PSNR: 25.56dB, Val - Cover PSNR: 29.22dB, Secret PSNR: 26.77dB, Time: 745.46s
+Epoch [29/100], Train - HLoss: 0.0013, RLoss: 0.0029, Sectet PSNR: 26.37dB, Val - Cover PSNR: 27.10dB, Secret PSNR: 25.08dB, Time: 770.91s
+Epoch [30/100], Train - HLoss: 0.0017, RLoss: 0.0034, Sectet PSNR: 25.68dB, Val - Cover PSNR: 28.85dB, Secret PSNR: 25.19dB, Time: 796.07s
+Epoch [31/100], Train - HLoss: 0.0017, RLoss: 0.0036, Sectet PSNR: 25.43dB, Val - Cover PSNR: 28.61dB, Secret PSNR: 24.39dB, Time: 821.26s
+保存最佳模型 - Val total PSNR: 53.00dB
+Epoch [32/100], Train - HLoss: 0.0014, RLoss: 0.0029, Sectet PSNR: 26.26dB, Val - Cover PSNR: 29.37dB, Secret PSNR: 26.21dB, Time: 847.86s
+Epoch [33/100], Train - HLoss: 0.0013, RLoss: 0.0028, Sectet PSNR: 26.57dB, Val - Cover PSNR: 26.94dB, Secret PSNR: 24.16dB, Time: 873.37s
+Epoch [34/100], Train - HLoss: 0.0016, RLoss: 0.0033, Sectet PSNR: 25.96dB, Val - Cover PSNR: 29.37dB, Secret PSNR: 25.87dB, Time: 898.89s
+Epoch [35/100], Train - HLoss: 0.0014, RLoss: 0.0030, Sectet PSNR: 26.23dB, Val - Cover PSNR: 29.83dB, Secret PSNR: 25.87dB, Time: 924.36s
+Epoch [36/100], Train - HLoss: 0.0014, RLoss: 0.0030, Sectet PSNR: 26.42dB, Val - Cover PSNR: 29.80dB, Secret PSNR: 26.70dB, Time: 949.70s
+Epoch [37/100], Train - HLoss: 0.0017, RLoss: 0.0032, Sectet PSNR: 25.97dB, Val - Cover PSNR: 29.24dB, Secret PSNR: 26.52dB, Time: 975.14s
+Epoch [38/100], Train - HLoss: 0.0013, RLoss: 0.0029, Sectet PSNR: 26.27dB, Val - Cover PSNR: 27.97dB, Secret PSNR: 23.18dB, Time: 1000.45s
+Epoch [39/100], Train - HLoss: 0.0013, RLoss: 0.0032, Sectet PSNR: 26.12dB, Val - Cover PSNR: 26.75dB, Secret PSNR: 19.81dB, Time: 1025.58s
+Epoch [40/100], Train - HLoss: 0.0018, RLoss: 0.0037, Sectet PSNR: 25.59dB, Val - Cover PSNR: 29.44dB, Secret PSNR: 26.82dB, Time: 1051.09s
+Epoch [41/100], Train - HLoss: 0.0012, RLoss: 0.0024, Sectet PSNR: 27.29dB, Val - Cover PSNR: 30.14dB, Secret PSNR: 26.34dB, Time: 1076.42s
+保存最佳模型 - Val total PSNR: 56.48dB
+Epoch [42/100], Train - HLoss: 0.0013, RLoss: 0.0029, Sectet PSNR: 26.29dB, Val - Cover PSNR: 29.28dB, Secret PSNR: 26.08dB, Time: 1103.25s
+Epoch [43/100], Train - HLoss: 0.0014, RLoss: 0.0028, Sectet PSNR: 26.56dB, Val - Cover PSNR: 29.18dB, Secret PSNR: 25.51dB, Time: 1128.76s
+Epoch [44/100], Train - HLoss: 0.0011, RLoss: 0.0027, Sectet PSNR: 26.63dB, Val - Cover PSNR: 29.85dB, Secret PSNR: 24.86dB, Time: 1154.05s
+Epoch [45/100], Train - HLoss: 0.0013, RLoss: 0.0028, Sectet PSNR: 26.77dB, Val - Cover PSNR: 29.58dB, Secret PSNR: 26.47dB, Time: 1179.71s
+Epoch [46/100], Train - HLoss: 0.0012, RLoss: 0.0031, Sectet PSNR: 25.99dB, Val - Cover PSNR: 27.94dB, Secret PSNR: 25.07dB, Time: 1205.17s
+Epoch [47/100], Train - HLoss: 0.0014, RLoss: 0.0029, Sectet PSNR: 26.28dB, Val - Cover PSNR: 30.06dB, Secret PSNR: 27.44dB, Time: 1230.52s
+Epoch [48/100], Train - HLoss: 0.0012, RLoss: 0.0028, Sectet PSNR: 26.52dB, Val - Cover PSNR: 29.21dB, Secret PSNR: 25.11dB, Time: 1256.43s
+Epoch [49/100], Train - HLoss: 0.0014, RLoss: 0.0028, Sectet PSNR: 26.58dB, Val - Cover PSNR: 29.13dB, Secret PSNR: 26.95dB, Time: 1281.64s
+Epoch [50/100], Train - HLoss: 0.0012, RLoss: 0.0025, Sectet PSNR: 26.90dB, Val - Cover PSNR: 29.59dB, Secret PSNR: 27.02dB, Time: 1306.89s
+Epoch [51/100], Train - HLoss: 0.0011, RLoss: 0.0026, Sectet PSNR: 26.99dB, Val - Cover PSNR: 29.80dB, Secret PSNR: 24.15dB, Time: 1332.15s
+保存最佳模型 - Val total PSNR: 53.95dB
+Epoch [52/100], Train - HLoss: 0.0012, RLoss: 0.0027, Sectet PSNR: 26.81dB, Val - Cover PSNR: 30.42dB, Secret PSNR: 27.03dB, Time: 1358.66s
+Epoch [53/100], Train - HLoss: 0.0011, RLoss: 0.0025, Sectet PSNR: 26.77dB, Val - Cover PSNR: 30.37dB, Secret PSNR: 26.89dB, Time: 1384.12s
+Epoch [54/100], Train - HLoss: 0.0016, RLoss: 0.0030, Sectet PSNR: 26.32dB, Val - Cover PSNR: 30.13dB, Secret PSNR: 27.16dB, Time: 1409.76s
+Epoch [55/100], Train - HLoss: 0.0012, RLoss: 0.0028, Sectet PSNR: 26.51dB, Val - Cover PSNR: 29.91dB, Secret PSNR: 26.74dB, Time: 1435.41s
+Epoch [56/100], Train - HLoss: 0.0010, RLoss: 0.0024, Sectet PSNR: 27.15dB, Val - Cover PSNR: 30.69dB, Secret PSNR: 26.76dB, Time: 1461.00s
+Epoch [57/100], Train - HLoss: 0.0011, RLoss: 0.0029, Sectet PSNR: 26.32dB, Val - Cover PSNR: 30.19dB, Secret PSNR: 27.11dB, Time: 1486.39s
+Epoch [58/100], Train - HLoss: 0.0010, RLoss: 0.0024, Sectet PSNR: 27.22dB, Val - Cover PSNR: 30.97dB, Secret PSNR: 27.98dB, Time: 1512.32s
+Epoch [59/100], Train - HLoss: 0.0012, RLoss: 0.0028, Sectet PSNR: 26.90dB, Val - Cover PSNR: 27.87dB, Secret PSNR: 20.75dB, Time: 1538.03s
+Epoch [60/100], Train - HLoss: 0.0012, RLoss: 0.0027, Sectet PSNR: 26.57dB, Val - Cover PSNR: 29.56dB, Secret PSNR: 24.42dB, Time: 1563.69s
+Epoch [61/100], Train - HLoss: 0.0014, RLoss: 0.0032, Sectet PSNR: 26.11dB, Val - Cover PSNR: 29.50dB, Secret PSNR: 27.41dB, Time: 1589.05s
+保存最佳模型 - Val total PSNR: 56.91dB
+Epoch [62/100], Train - HLoss: 0.0010, RLoss: 0.0021, Sectet PSNR: 27.60dB, Val - Cover PSNR: 30.06dB, Secret PSNR: 22.33dB, Time: 1615.99s
+Epoch [63/100], Train - HLoss: 0.0011, RLoss: 0.0027, Sectet PSNR: 26.99dB, Val - Cover PSNR: 29.97dB, Secret PSNR: 25.10dB, Time: 1641.33s
+Epoch [64/100], Train - HLoss: 0.0010, RLoss: 0.0024, Sectet PSNR: 27.30dB, Val - Cover PSNR: 30.60dB, Secret PSNR: 26.85dB, Time: 1666.81s
+Epoch [65/100], Train - HLoss: 0.0011, RLoss: 0.0029, Sectet PSNR: 26.43dB, Val - Cover PSNR: 28.34dB, Secret PSNR: 26.56dB, Time: 1692.37s
+Epoch [66/100], Train - HLoss: 0.0011, RLoss: 0.0026, Sectet PSNR: 26.88dB, Val - Cover PSNR: 30.02dB, Secret PSNR: 27.47dB, Time: 1717.81s
+Epoch [67/100], Train - HLoss: 0.0010, RLoss: 0.0021, Sectet PSNR: 27.76dB, Val - Cover PSNR: 31.34dB, Secret PSNR: 27.50dB, Time: 1743.43s
+Epoch [68/100], Train - HLoss: 0.0009, RLoss: 0.0023, Sectet PSNR: 27.43dB, Val - Cover PSNR: 31.07dB, Secret PSNR: 25.61dB, Time: 1768.97s
+Epoch [69/100], Train - HLoss: 0.0011, RLoss: 0.0024, Sectet PSNR: 27.10dB, Val - Cover PSNR: 30.76dB, Secret PSNR: 27.57dB, Time: 1794.34s
+Epoch [70/100], Train - HLoss: 0.0010, RLoss: 0.0022, Sectet PSNR: 27.46dB, Val - Cover PSNR: 27.89dB, Secret PSNR: 26.74dB, Time: 1820.01s
+Epoch [71/100], Train - HLoss: 0.0011, RLoss: 0.0027, Sectet PSNR: 26.49dB, Val - Cover PSNR: 30.70dB, Secret PSNR: 27.37dB, Time: 1845.55s
+保存最佳模型 - Val total PSNR: 58.07dB
+Epoch [72/100], Train - HLoss: 0.0009, RLoss: 0.0023, Sectet PSNR: 27.50dB, Val - Cover PSNR: 30.68dB, Secret PSNR: 25.81dB, Time: 1872.07s
+Epoch [73/100], Train - HLoss: 0.0010, RLoss: 0.0026, Sectet PSNR: 26.76dB, Val - Cover PSNR: 30.62dB, Secret PSNR: 27.74dB, Time: 1898.00s
+Epoch [74/100], Train - HLoss: 0.0010, RLoss: 0.0026, Sectet PSNR: 26.84dB, Val - Cover PSNR: 29.92dB, Secret PSNR: 26.58dB, Time: 1923.63s
+Epoch [75/100], Train - HLoss: 0.0011, RLoss: 0.0024, Sectet PSNR: 27.10dB, Val - Cover PSNR: 30.42dB, Secret PSNR: 28.23dB, Time: 1949.24s
+Epoch [76/100], Train - HLoss: 0.0010, RLoss: 0.0020, Sectet PSNR: 27.86dB, Val - Cover PSNR: 30.59dB, Secret PSNR: 27.64dB, Time: 1975.36s
+Epoch [77/100], Train - HLoss: 0.0010, RLoss: 0.0022, Sectet PSNR: 27.15dB, Val - Cover PSNR: 28.46dB, Secret PSNR: 24.03dB, Time: 2000.83s
+Epoch [78/100], Train - HLoss: 0.0011, RLoss: 0.0022, Sectet PSNR: 27.55dB, Val - Cover PSNR: 30.62dB, Secret PSNR: 28.56dB, Time: 2026.63s
+Epoch [79/100], Train - HLoss: 0.0010, RLoss: 0.0020, Sectet PSNR: 27.86dB, Val - Cover PSNR: 30.53dB, Secret PSNR: 28.09dB, Time: 2051.99s
+Epoch [80/100], Train - HLoss: 0.0010, RLoss: 0.0018, Sectet PSNR: 28.13dB, Val - Cover PSNR: 30.60dB, Secret PSNR: 27.49dB, Time: 2077.50s
+Epoch [81/100], Train - HLoss: 0.0009, RLoss: 0.0016, Sectet PSNR: 28.73dB, Val - Cover PSNR: 29.48dB, Secret PSNR: 23.37dB, Time: 2102.85s
+保存最佳模型 - Val total PSNR: 52.84dB
+Epoch [82/100], Train - HLoss: 0.0012, RLoss: 0.0022, Sectet PSNR: 27.55dB, Val - Cover PSNR: 30.54dB, Secret PSNR: 28.65dB, Time: 2129.19s
+Epoch [83/100], Train - HLoss: 0.0009, RLoss: 0.0016, Sectet PSNR: 28.73dB, Val - Cover PSNR: 29.59dB, Secret PSNR: 28.42dB, Time: 2154.98s
+Epoch [84/100], Train - HLoss: 0.0009, RLoss: 0.0014, Sectet PSNR: 29.22dB, Val - Cover PSNR: 31.15dB, Secret PSNR: 29.97dB, Time: 2180.71s
+Epoch [85/100], Train - HLoss: 0.0009, RLoss: 0.0015, Sectet PSNR: 29.01dB, Val - Cover PSNR: 30.97dB, Secret PSNR: 29.89dB, Time: 2206.62s
+Epoch [86/100], Train - HLoss: 0.0012, RLoss: 0.0022, Sectet PSNR: 27.72dB, Val - Cover PSNR: 30.28dB, Secret PSNR: 28.88dB, Time: 2232.13s
+Epoch [87/100], Train - HLoss: 0.0010, RLoss: 0.0015, Sectet PSNR: 29.27dB, Val - Cover PSNR: 30.54dB, Secret PSNR: 29.03dB, Time: 2257.66s
+Epoch [88/100], Train - HLoss: 0.0011, RLoss: 0.0023, Sectet PSNR: 27.77dB, Val - Cover PSNR: 28.95dB, Secret PSNR: 29.04dB, Time: 2283.63s
+Epoch [89/100], Train - HLoss: 0.0010, RLoss: 0.0013, Sectet PSNR: 29.37dB, Val - Cover PSNR: 30.48dB, Secret PSNR: 27.14dB, Time: 2309.61s
+Epoch [90/100], Train - HLoss: 0.0013, RLoss: 0.0028, Sectet PSNR: 26.78dB, Val - Cover PSNR: 30.28dB, Secret PSNR: 30.25dB, Time: 2335.79s
+Epoch [91/100], Train - HLoss: 0.0008, RLoss: 0.0012, Sectet PSNR: 29.96dB, Val - Cover PSNR: 30.68dB, Secret PSNR: 28.01dB, Time: 2361.50s
+保存最佳模型 - Val total PSNR: 58.68dB
+Epoch [92/100], Train - HLoss: 0.0010, RLoss: 0.0014, Sectet PSNR: 29.52dB, Val - Cover PSNR: 31.39dB, Secret PSNR: 29.90dB, Time: 2388.14s
+Epoch [93/100], Train - HLoss: 0.0010, RLoss: 0.0021, Sectet PSNR: 27.90dB, Val - Cover PSNR: 26.64dB, Secret PSNR: 23.91dB, Time: 2414.07s
+Epoch [94/100], Train - HLoss: 0.0010, RLoss: 0.0013, Sectet PSNR: 29.84dB, Val - Cover PSNR: 31.14dB, Secret PSNR: 28.18dB, Time: 2439.49s
+Epoch [95/100], Train - HLoss: 0.0009, RLoss: 0.0014, Sectet PSNR: 29.45dB, Val - Cover PSNR: 30.96dB, Secret PSNR: 29.86dB, Time: 2464.99s
+Epoch [96/100], Train - HLoss: 0.0008, RLoss: 0.0015, Sectet PSNR: 28.85dB, Val - Cover PSNR: 31.07dB, Secret PSNR: 28.07dB, Time: 2490.52s
+Epoch [97/100], Train - HLoss: 0.0008, RLoss: 0.0013, Sectet PSNR: 29.51dB, Val - Cover PSNR: 30.90dB, Secret PSNR: 28.89dB, Time: 2516.91s
+Epoch [98/100], Train - HLoss: 0.0008, RLoss: 0.0013, Sectet PSNR: 29.59dB, Val - Cover PSNR: 30.80dB, Secret PSNR: 25.75dB, Time: 2542.66s
+Epoch [99/100], Train - HLoss: 0.0009, RLoss: 0.0015, Sectet PSNR: 29.19dB, Val - Cover PSNR: 31.23dB, Secret PSNR: 28.72dB, Time: 2568.41s
+Epoch [100/100], Train - HLoss: 0.0010, RLoss: 0.0018, Sectet PSNR: 28.21dB, Val - Cover PSNR: 30.81dB, Secret PSNR: 29.87dB, Time: 2594.24s

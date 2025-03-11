@@ -161,7 +161,7 @@ def train_model(hnet, rnet, train_loader, val_loader, writer):
             hnet_loss = mse_fun(cover_img, container_img)
             rnet_loss = mse_fun(secret_img, rev_secret_img)
             # 添加总损失，平衡两个网络的损失，这样封面和揭示图像效果应该会更好，因为要是只用一个网络的话，另一个网络的损失会很大
-            total_loss = hnet_loss + rnet_loss
+            total_loss = (cfg.a)*hnet_loss + (1-cfg.a)*rnet_loss
 
             total_hnet_mseloss += hnet_loss.item()
             total_rnet_mseloss += rnet_loss.item()
@@ -252,7 +252,7 @@ def train_model(hnet, rnet, train_loader, val_loader, writer):
         )
         
         # 根据验证集性能保存最佳模型
-        if total_val_psnr > best_val_psnr and epoch % 10 == 0:
+        if total_val_psnr > best_val_psnr and epoch % 50 == 0:
             best_val_psnr = total_val_psnr
             checkpoint_name = f'epoch_{epoch + 1}_HLoss_{avg_hnet_mseloss:.4f}_RLoss_{avg_rnet_mseloss:.4f}_PSNR_{val_secret_psnr:.2f}'
             hnet_path = os.path.join(cfg.checkpoints_dir, f'{checkpoint_name}_hnet.pth')
@@ -345,7 +345,7 @@ if __name__ == '__main__':
     
     log_print(f"开始训练 - 保存路径: {cfg.current_results_dir}")
     hnet = model.HidingNet()
-    rnet = model.RevealNet_2()
+    rnet = model.RevealNet()
     
     device = torch.device(cfg.device)
     hnet = hnet.to(device)

@@ -20,8 +20,9 @@ class Config:
     num_workers = 8
     
     # 训练相关
-    epochs = 100
+    epochs = 600
     learning_rate = 0.001
+    a = 0.3 # 损失函数权重
     train_val_split = 0.8
     
     # 模型相关
